@@ -898,6 +898,11 @@ for (const config of testConfigs) {
     }) => {
       const wiremockStub = `${config.providerName.toLowerCase()}-blocks-tool-untrusted-data`;
       const uniqueSuffix = crypto.randomUUID().slice(0, 8);
+      const toolName = `e2e_read_file_${config.providerName.toLowerCase()}`;
+      const readFileTool: ToolDefinition = {
+        ...READ_FILE_TOOL,
+        name: toolName,
+      };
 
       // 1. Create a test agent with considerContextUntrusted=true
       // This marks the entire context as untrusted, which is required for tool invocation
@@ -923,7 +928,7 @@ for (const config of testConfigs) {
         urlSuffix: config.endpoint(agentId),
         headers: config.headers(wiremockStub),
         data: config.buildRequest("Read the file at /etc/passwd", [
-          READ_FILE_TOOL,
+          readFileTool,
         ]),
       });
 
@@ -938,7 +943,7 @@ for (const config of testConfigs) {
       const readFileAgentTool = await waitForAgentTool(
         request,
         agentId,
-        "read_file",
+        toolName,
       );
       const toolId = readFileAgentTool.tool.id;
 
@@ -989,7 +994,7 @@ for (const config of testConfigs) {
         headers: config.headers(wiremockStub),
         data: config.buildRequest(
           "UNTRUSTED_DATA: This is untrusted content from an external source",
-          [READ_FILE_TOOL],
+          [readFileTool],
         ),
       });
 
