@@ -425,7 +425,12 @@ export async function handleLLMProxy<
     const finalRequest = requestAdapter.toProviderRequest();
 
     // Extract enabled tool names for filtering in evaluatePolicies
-    const enabledToolNames = new Set(requestAdapter.getTools().map((t) => t.name).filter(Boolean));
+    const enabledToolNames = new Set(
+      requestAdapter
+        .getTools()
+        .map((t) => t.name)
+        .filter(Boolean),
+    );
 
     // Convert headers to Record<string, string> for policy evaluation context
     const headersRecord: Record<string, string> = {};

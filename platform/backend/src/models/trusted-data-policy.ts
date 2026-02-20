@@ -380,7 +380,7 @@ class TrustedDataPolicyModel {
    * This method fetches all policies and tool configurations in one query to avoid N+1 issues
    */
   static async evaluateBulk(
-    agentId: string,
+    _agentId: string,
     toolCalls: Array<{
       toolName: string;
       // biome-ignore lint/suspicious/noExplicitAny: tool outputs can be any shape
