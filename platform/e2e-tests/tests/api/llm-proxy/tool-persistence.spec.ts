@@ -23,34 +23,6 @@ interface ToolPersistenceTestConfig {
 }
 
 // =============================================================================
-// Test Tools (unique names to avoid collisions)
-// =============================================================================
-
-const E2E_PERSIST_TOOL_ALPHA: ToolDefinition = {
-  name: "e2e_persist_test_tool_alpha",
-  description: "Test tool alpha for persistence verification",
-  parameters: {
-    type: "object",
-    properties: {
-      input: { type: "string", description: "Input string" },
-    },
-    required: ["input"],
-  },
-};
-
-const E2E_PERSIST_TOOL_BETA: ToolDefinition = {
-  name: "e2e_persist_test_tool_beta",
-  description: "Test tool beta for persistence verification",
-  parameters: {
-    type: "object",
-    properties: {
-      value: { type: "number", description: "Numeric value" },
-    },
-    required: ["value"],
-  },
-};
-
-// =============================================================================
 // Provider Configurations
 // =============================================================================
 
@@ -333,7 +305,10 @@ for (const config of testConfigs) {
       makeApiRequest,
       waitForAgentTool,
     }) => {
-      const wiremockStub = `${config.providerName.toLowerCase()}-tool-persistence`;
+      const provider = config.providerName.toLowerCase();
+      const wiremockStub = `${provider}-tool-persistence`;
+      const toolOneName = `e2e_persist_tool_1_${provider}`;
+      const toolTwoName = `e2e_persist_tool_2_${provider}`;
 
       // 1. Create test profile with unique name
       const createResponse = await createAgent(
@@ -350,30 +325,30 @@ for (const config of testConfigs) {
         urlSuffix: config.endpoint(agentId),
         headers: config.headers(wiremockStub),
         data: config.buildRequest("Test message", [
-          E2E_PERSIST_TOOL_ALPHA,
-          E2E_PERSIST_TOOL_BETA,
+          {
+            name: toolOneName,
+            description: "Test tool for persistence",
+            parameters: { type: "object", properties: { input: { type: "string", description: "Input" } }, required: ["input"] },
+          },
+          {
+            name: toolTwoName,
+            description: "Test tool for persistence",
+            parameters: { type: "object", properties: { value: { type: "number", description: "Value" } }, required: ["value"] },
+          },
         ]),
       });
       expect(response.ok()).toBeTruthy();
 
       // 3. Verify tools are persisted using waitForAgentTool
-      const toolAlpha = await waitForAgentTool(
-        request,
-        agentId,
-        "e2e_persist_test_tool_alpha",
-      );
-      expect(toolAlpha).toBeDefined();
-      expect(toolAlpha.agent.id).toBe(agentId);
-      expect(toolAlpha.tool.name).toBe("e2e_persist_test_tool_alpha");
+      const toolOne = await waitForAgentTool(request, agentId, toolOneName);
+      expect(toolOne).toBeDefined();
+      expect(toolOne.agent.id).toBe(agentId);
+      expect(toolOne.tool.name).toBe(toolOneName);
 
-      const toolBeta = await waitForAgentTool(
-        request,
-        agentId,
-        "e2e_persist_test_tool_beta",
-      );
-      expect(toolBeta).toBeDefined();
-      expect(toolBeta.agent.id).toBe(agentId);
-      expect(toolBeta.tool.name).toBe("e2e_persist_test_tool_beta");
+      const toolTwo = await waitForAgentTool(request, agentId, toolTwoName);
+      expect(toolTwo).toBeDefined();
+      expect(toolTwo.agent.id).toBe(agentId);
+      expect(toolTwo.tool.name).toBe(toolTwoName);
     });
 
     test("does not create duplicate tools when same request is sent twice", async ({
@@ -382,7 +357,14 @@ for (const config of testConfigs) {
       makeApiRequest,
       waitForAgentTool,
     }) => {
-      const wiremockStub = `${config.providerName.toLowerCase()}-tool-persistence-idempotency`;
+      const provider = config.providerName.toLowerCase();
+      const wiremockStub = `${provider}-tool-persistence-idempotency`;
+      const toolName = `e2e_persist_tool_dedup_${provider}`;
+      const tool: ToolDefinition = {
+        name: toolName,
+        description: "Test tool for dedup verification",
+        parameters: { type: "object", properties: { input: { type: "string", description: "Input" } }, required: ["input"] },
+      };
 
       // 1. Create test profile
       const createResponse = await createAgent(
@@ -398,11 +380,11 @@ for (const config of testConfigs) {
         method: "post",
         urlSuffix: config.endpoint(agentId),
         headers: config.headers(wiremockStub),
-        data: config.buildRequest("First request", [E2E_PERSIST_TOOL_ALPHA]),
+        data: config.buildRequest("First request", [tool]),
       });
 
       // 3. Wait for tool to be persisted
-      await waitForAgentTool(request, agentId, "e2e_persist_test_tool_alpha");
+      await waitForAgentTool(request, agentId, toolName);
 
       // 4. Send second request with same tool
       await makeApiRequest({
@@ -410,7 +392,7 @@ for (const config of testConfigs) {
         method: "post",
         urlSuffix: config.endpoint(agentId),
         headers: config.headers(wiremockStub),
-        data: config.buildRequest("Second request", [E2E_PERSIST_TOOL_ALPHA]),
+        data: config.buildRequest("Second request", [tool]),
       });
 
       // 5. Small delay for any async processing
@@ -425,13 +407,12 @@ for (const config of testConfigs) {
       const agentTools = await agentToolsResponse.json();
 
       // Filter to only our test tool
-      const alphaTools = agentTools.data.filter(
-        (at: { tool: { name: string } }) =>
-          at.tool.name === "e2e_persist_test_tool_alpha",
+      const matchingTools = agentTools.data.filter(
+        (at: { tool: { name: string } }) => at.tool.name === toolName,
       );
 
       // Should have exactly 1 instance, not 2
-      expect(alphaTools.length).toBe(1);
+      expect(matchingTools.length).toBe(1);
     });
 
     test.afterEach(async ({ request, deleteAgent }) => {
