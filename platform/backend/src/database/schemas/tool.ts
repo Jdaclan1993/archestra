@@ -16,9 +16,7 @@ const toolsTable = pgTable(
   "tools",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    // agentId is used for delegation tools only (historical).
-    // Proxy-sniffed tools now have agentId=NULL and are linked to agents via agent_tools junction table.
-    // MCP tools (installed via catalog) also have agentId=NULL.
+    /** @deprecated No longer set by any code path. All tool-to-agent links use the agent_tools junction table. Will be dropped in a future migration. */
     agentId: uuid("agent_id").references(() => agentsTable.id, {
       onDelete: "cascade",
     }),
