@@ -16,7 +16,7 @@ import {
 } from "ai";
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import { z } from "zod";
-import { hasPermission } from "@/auth";
+import { hasAnyAgentTypeAdminPermission } from "@/auth";
 import { CacheKey, cacheManager } from "@/cache-manager";
 import { getChatMcpTools } from "@/clients/chat-mcp-client";
 import { isVertexAiEnabled } from "@/clients/gemini-client";
@@ -160,7 +160,6 @@ const chatRoutes: FastifyPluginAsyncZod = async (fastify) => {
         body: { id: conversationId, messages },
         user,
         organizationId,
-        headers,
       } = request;
       const chatAbortController = new AbortController();
 
@@ -204,10 +203,10 @@ const chatRoutes: FastifyPluginAsyncZod = async (fastify) => {
         );
       });
 
-      const { success: userIsProfileAdmin } = await hasPermission(
-        { profile: ["admin"] },
-        headers,
-      );
+      const userIsAgentAdmin = await hasAnyAgentTypeAdminPermission({
+        userId: user.id,
+        organizationId,
+      });
 
       // Get conversation
       const conversation = await ConversationModel.findById({
@@ -220,7 +219,7 @@ const chatRoutes: FastifyPluginAsyncZod = async (fastify) => {
         throw new ApiError(404, "Conversation not found");
       }
 
-      const externalAgentId = getExternalAgentId(headers);
+      const externalAgentId = getExternalAgentId(request.headers);
 
       // Fetch enabled tool IDs and custom selection status in parallel
       const [enabledToolIds, hasCustomSelection] = await Promise.all([
@@ -235,7 +234,7 @@ const chatRoutes: FastifyPluginAsyncZod = async (fastify) => {
         agentName: conversation.agent.name,
         agentId: conversation.agentId,
         userId: user.id,
-        userIsProfileAdmin,
+        userIsAgentAdmin,
         enabledToolIds: hasCustomSelection ? enabledToolIds : undefined,
         conversationId: conversation.id,
         organizationId,
@@ -259,6 +258,11 @@ const chatRoutes: FastifyPluginAsyncZod = async (fastify) => {
       if (conversation.agent.userPrompt) {
         userPromptParts.push(conversation.agent.userPrompt);
       }
+
+      // Add instruction about tool approval denials
+      systemPromptParts.push(
+        "When a tool execution is not approved by the user, do not retry it. Explain what happened and ask the user what they'd like to do instead.",
+      );
 
       // Combine all prompts into system prompt (system prompts first, then user prompts)
       if (systemPromptParts.length > 0 || userPromptParts.length > 0) {
@@ -328,10 +332,15 @@ const chatRoutes: FastifyPluginAsyncZod = async (fastify) => {
           const modelMessages = await convertToModelMessages(
             strippedMessagesForLLM as unknown as Omit<UIMessage, "id">[],
           );
+
+          // Perplexity does NOT support tool calling - it has built-in web search instead
+          // @see https://docs.perplexity.ai/api-reference/chat-completions-post
+          const supportsToolCalling = provider !== "perplexity";
+
           const streamTextConfig: Parameters<typeof streamText>[0] = {
             model,
             messages: modelMessages,
-            tools: mcpTools,
+            ...(supportsToolCalling && { tools: mcpTools }),
             stopWhen: stepCountIs(500),
             abortSignal: chatAbortController.signal,
             onFinish: async ({ usage, finishReason }) => {
@@ -633,12 +642,12 @@ const chatRoutes: FastifyPluginAsyncZod = async (fastify) => {
         ),
       },
     },
-    async ({ params: { agentId }, user, organizationId, headers }, reply) => {
+    async ({ params: { agentId }, user, organizationId }, reply) => {
       // Check if user is an agent admin
-      const { success: isAgentAdmin } = await hasPermission(
-        { profile: ["admin"] },
-        headers,
-      );
+      const isAgentAdmin = await hasAnyAgentTypeAdminPermission({
+        userId: user.id,
+        organizationId,
+      });
 
       // Verify agent exists and user has access
       const agent = await AgentModel.findById(agentId, user.id, isAgentAdmin);
@@ -653,7 +662,7 @@ const chatRoutes: FastifyPluginAsyncZod = async (fastify) => {
         agentId,
         userId: user.id,
         organizationId,
-        userIsProfileAdmin: isAgentAdmin,
+        userIsAgentAdmin: isAgentAdmin,
         // No conversation context here as this is just fetching available tools
       });
 
@@ -699,15 +708,14 @@ const chatRoutes: FastifyPluginAsyncZod = async (fastify) => {
         body: { agentId, title, selectedModel, selectedProvider, chatApiKeyId },
         user,
         organizationId,
-        headers,
       },
       reply,
     ) => {
       // Check if user is an agent admin
-      const { success: isAgentAdmin } = await hasPermission(
-        { profile: ["admin"] },
-        headers,
-      );
+      const isAgentAdmin = await hasAnyAgentTypeAdminPermission({
+        userId: user.id,
+        organizationId,
+      });
 
       // Validate that the agent exists and user has access to it
       const agent = await AgentModel.findById(agentId, user.id, isAgentAdmin);
@@ -784,7 +792,7 @@ const chatRoutes: FastifyPluginAsyncZod = async (fastify) => {
         response: constructResponseSchema(SelectConversationSchema),
       },
     },
-    async ({ params: { id }, body, user, organizationId, headers }, reply) => {
+    async ({ params: { id }, body, user, organizationId }, reply) => {
       // Validate chatApiKeyId if provided
       // Skip validation if it matches the agent's configured key (permission flows through agent access)
       if (body.chatApiKeyId) {
@@ -808,10 +816,10 @@ const chatRoutes: FastifyPluginAsyncZod = async (fastify) => {
 
       // Validate agentId if provided
       if (body.agentId) {
-        const { success: isAgentAdmin } = await hasPermission(
-          { profile: ["admin"] },
-          headers,
-        );
+        const isAgentAdmin = await hasAnyAgentTypeAdminPermission({
+          userId: user.id,
+          organizationId,
+        });
 
         const agent = await AgentModel.findById(
           body.agentId,
@@ -863,7 +871,7 @@ const chatRoutes: FastifyPluginAsyncZod = async (fastify) => {
           await browserStreamFeature.closeTab(conversation.agentId, id, {
             userId: user.id,
             organizationId,
-            userIsProfileAdmin: false,
+            userIsAgentAdmin: false,
           });
         } catch (error) {
           logger.warn(

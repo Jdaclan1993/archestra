@@ -29,6 +29,7 @@ import {
   ToolInput,
   ToolOutput,
 } from "@/components/ai-elements/tool";
+import { Button } from "@/components/ui/button";
 import { useUpdateChatMessage } from "@/lib/chat-message.query";
 import {
   parseAuthRequired,
@@ -64,6 +65,12 @@ interface ChatMessagesProps {
   onSuggestedPromptClick?: () => void;
   /** Hide the decorative arrow pointing to agent selector (e.g., when an overlay is shown) */
   hideArrow?: boolean;
+  /** Callback for tool approval responses (approve/deny) */
+  onToolApprovalResponse?: (params: {
+    id: string;
+    approved: boolean;
+    reason?: string;
+  }) => void;
 }
 
 // Type guards for tool parts
@@ -99,6 +106,7 @@ export function ChatMessages({
   onUserMessageEdit,
   error = null,
   hideArrow = false,
+  onToolApprovalResponse,
 }: ChatMessagesProps) {
   const isStreamingStalled = useStreamingStallDetection(messages, status);
   // Track editing by messageId-partIndex to support multiple text parts per message
@@ -217,9 +225,13 @@ export function ChatMessages({
     const textX = textRect.left;
     const textY = textRect.top;
 
-    // Agent selector position (top left area)
-    const selectorX = 248;
-    const selectorY = 85;
+    // Agent selector position - dynamically find the actual button.
+    // The SVG path draws the arrowhead at internal coords (60, 5), so offset
+    // selectorX/Y so the arrowhead lands near the button's left edge, below the header.
+    const selectorEl = document.querySelector("[data-agent-selector]");
+    const selectorRect = selectorEl?.getBoundingClientRect();
+    const selectorX = selectorRect ? selectorRect.left - 8 : 248;
+    const selectorY = selectorRect ? selectorRect.bottom + 30 : 85;
 
     // Calculate SVG dimensions - arrow should end at text marker position
     const svgWidth = Math.max(textX - selectorX, 200); // Width from selector to text
@@ -769,6 +781,7 @@ export function ChatMessages({
                           toolResultPart={toolResultPart}
                           toolName={toolName}
                           agentId={agentId}
+                          onToolApprovalResponse={onToolApprovalResponse}
                         />
                       );
                     }
@@ -799,6 +812,7 @@ export function ChatMessages({
                             toolResultPart={toolResultPart}
                             toolName={toolName}
                             agentId={agentId}
+                            onToolApprovalResponse={onToolApprovalResponse}
                           />
                         );
                       }
@@ -878,11 +892,17 @@ function MessageTool({
   toolResultPart,
   toolName,
   agentId,
+  onToolApprovalResponse,
 }: {
   part: ToolUIPart | DynamicToolUIPart;
   toolResultPart: ToolUIPart | DynamicToolUIPart | null;
   toolName: string;
   agentId?: string;
+  onToolApprovalResponse?: (params: {
+    id: string;
+    approved: boolean;
+    reason?: string;
+  }) => void;
 }) {
   const outputError = toolResultPart
     ? tryToExtractErrorFromOutput(toolResultPart.output)
@@ -928,10 +948,12 @@ function MessageTool({
     );
   }
 
+  const isApprovalRequested = part.state === "approval-requested";
   const hasInput = part.input && Object.keys(part.input).length > 0;
   const hasContent = Boolean(
     hasInput ||
       errorText ||
+      isApprovalRequested ||
       (toolResultPart && Boolean(toolResultPart.output)) ||
       (!toolResultPart && Boolean(part.output)),
   );
@@ -942,7 +964,10 @@ function MessageTool({
   ) : null;
 
   return (
-    <Tool className={hasContent ? "cursor-pointer" : ""}>
+    <Tool
+      className={hasContent ? "cursor-pointer" : ""}
+      defaultOpen={isApprovalRequested}
+    >
       <ToolHeader
         type={`tool-${toolName}`}
         state={getHeaderState({
@@ -955,6 +980,40 @@ function MessageTool({
       />
       <ToolContent>
         {hasInput ? <ToolInput input={part.input} /> : null}
+        {isApprovalRequested &&
+          onToolApprovalResponse &&
+          "approval" in part &&
+          part.approval?.id && (
+            <div className="flex items-center gap-2 px-4 pb-4">
+              <Button
+                size="sm"
+                variant="default"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToolApprovalResponse({
+                    id: (part as { approval: { id: string } }).approval.id,
+                    approved: true,
+                  });
+                }}
+              >
+                Approve
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToolApprovalResponse({
+                    id: (part as { approval: { id: string } }).approval.id,
+                    approved: false,
+                    reason: "User denied",
+                  });
+                }}
+              >
+                Deny
+              </Button>
+            </div>
+          )}
         {errorText ? <ToolErrorDetails errorText={errorText} /> : null}
         {toolResultPart && (
           <ToolOutput

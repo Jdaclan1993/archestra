@@ -833,6 +833,12 @@ export function AssignedToolsTable({
                       <SelectItem value="block_when_context_is_untrusted">
                         Allow in trusted context
                       </SelectItem>
+                      <SelectItem
+                        value="require_approval"
+                        description="Requires user confirmation before executing in chat. In autonomous agent sessions (A2A, API, MS Teams, subagents), the tool is always allowed."
+                      >
+                        Require approval
+                      </SelectItem>
                       <SelectItem value="block_always">Block always</SelectItem>
                     </SelectContent>
                   </Select>
@@ -874,7 +880,7 @@ export function AssignedToolsTable({
             <Tooltip>
               <TooltipTrigger asChild>
                 <PermissionButton
-                  permissions={{ profile: ["update"], tool: ["update"] }}
+                  permissions={{ agent: ["update"], tool: ["update"] }}
                   size="sm"
                   variant="outline"
                   onClick={handleAutoConfigurePolicies}
