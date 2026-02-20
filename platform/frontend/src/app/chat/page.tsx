@@ -276,10 +276,11 @@ export default function ChatPage() {
   const { data: chatModels = [] } = useChatModels();
   // Vertex AI Gemini mode doesn't require an API key (uses ADC)
   // vLLM/Ollama may not require an API key either
+  // Show the API key setup prompt only when the user has no keys at all.
+  // Keys for optional-API-key providers (Ollama, vLLM) have secretId=null but are still valid.
+  // Vertex AI Gemini uses ADC instead of an API key.
   const hasAnyApiKey =
-    chatApiKeys.some((k) => k.secretId) ||
-    features?.geminiVertexAiEnabled ||
-    features?.vllmEnabled;
+    chatApiKeys.length > 0 || features?.geminiVertexAiEnabled;
   const isLoadingApiKeyCheck = isLoadingApiKeys || isLoadingFeatures;
 
   // Sync conversation ID with URL and reset initial state when navigating to base /chat
