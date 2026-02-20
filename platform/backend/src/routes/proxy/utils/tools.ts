@@ -28,12 +28,14 @@ export const persistTools = async (
     return;
   }
 
-  // Get names of all MCP tools already assigned to this agent
-  const mcpToolNames = await ToolModel.getMcpToolNamesByAgent(agentId);
-  const mcpToolNamesSet = new Set(mcpToolNames);
+  // Get names of tools that already exist in the database (any type: catalog, proxy, etc.)
+  const existingToolNames = await ToolModel.getExistingToolNames(
+    tools.map((t) => t.toolName),
+  );
+  const existingToolNamesSet = new Set(existingToolNames);
   logger.debug(
-    { agentId, mcpToolCount: mcpToolNames.length },
-    "[tools] persistTools: fetched existing MCP tools for agent",
+    { agentId, existingToolCount: existingToolNames.length },
+    "[tools] persistTools: fetched existing tools globally",
   );
 
   // Get Archestra built-in tool names
@@ -46,12 +48,12 @@ export const persistTools = async (
     "[tools] persistTools: fetched Archestra built-in tools",
   );
 
-  // Filter out tools that are already available via MCP servers, are Archestra built-in tools,
+  // Filter out tools that already exist in the database, are Archestra built-in tools,
   // or are agent delegation tools (agent__*). Also deduplicate by tool name to avoid constraint violations
   const seenToolNames = new Set<string>();
   const toolsToAutoDiscover = tools.filter(({ toolName }) => {
     if (
-      mcpToolNamesSet.has(toolName) ||
+      existingToolNamesSet.has(toolName) ||
       archestraToolNamesSet.has(toolName) ||
       isAgentTool(toolName) ||
       seenToolNames.has(toolName)
@@ -67,8 +69,9 @@ export const persistTools = async (
       agentId,
       originalCount: tools.length,
       filteredCount: toolsToAutoDiscover.length,
-      skippedMcpTools: tools.filter((t) => mcpToolNamesSet.has(t.toolName))
-        .length,
+      skippedExistingTools: tools.filter((t) =>
+        existingToolNamesSet.has(t.toolName),
+      ).length,
       skippedArchestraTools: tools.filter((t) =>
         archestraToolNamesSet.has(t.toolName),
       ).length,

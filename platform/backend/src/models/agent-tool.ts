@@ -342,6 +342,15 @@ class AgentToolModel {
     return results.map((r) => r.toolId);
   }
 
+  static async findToolIdsByAgents(agentIds: string[]): Promise<string[]> {
+    if (agentIds.length === 0) return [];
+    const results = await db
+      .selectDistinct({ toolId: schema.agentToolsTable.toolId })
+      .from(schema.agentToolsTable)
+      .where(inArray(schema.agentToolsTable.agentId, agentIds));
+    return results.map((r) => r.toolId);
+  }
+
   static async findAgentIdsByTool(toolId: string): Promise<string[]> {
     const results = await db
       .select({ agentId: schema.agentToolsTable.agentId })
@@ -427,12 +436,15 @@ class AgentToolModel {
     const newToolIds = toolIds.filter((toolId) => !existingToolIds.has(toolId));
 
     if (newToolIds.length > 0) {
-      await db.insert(schema.agentToolsTable).values(
-        newToolIds.map((toolId) => ({
-          agentId,
-          toolId,
-        })),
-      );
+      await db
+        .insert(schema.agentToolsTable)
+        .values(
+          newToolIds.map((toolId) => ({
+            agentId,
+            toolId,
+          })),
+        )
+        .onConflictDoNothing();
     }
   }
 
@@ -712,8 +724,11 @@ class AgentToolModel {
     // Filter by origin (either "llm-proxy" or a catalogId)
     if (filters?.origin) {
       if (filters.origin === "llm-proxy") {
-        // LLM Proxy tools have null catalogId
+        // LLM Proxy tools: shared proxy tools with catalogId=NULL, no delegation
         whereConditions.push(sql`${schema.toolsTable.catalogId} IS NULL`);
+        whereConditions.push(
+          sql`${schema.toolsTable.delegateToAgentId} IS NULL`,
+        );
       } else {
         // MCP tools have a catalogId
         whereConditions.push(eq(schema.toolsTable.catalogId, filters.origin));

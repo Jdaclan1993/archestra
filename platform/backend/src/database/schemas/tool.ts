@@ -16,8 +16,9 @@ const toolsTable = pgTable(
   "tools",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    // agentId identifies which agent discovered this tool via LLM proxy sniffing.
-    // null for MCP tools (installed via catalog), set for proxy-sniffed tools.
+    // agentId is used for delegation tools only (historical).
+    // Proxy-sniffed tools now have agentId=NULL and are linked to agents via agent_tools junction table.
+    // MCP tools (installed via catalog) also have agentId=NULL.
     agentId: uuid("agent_id").references(() => agentsTable.id, {
       onDelete: "cascade",
     }),
