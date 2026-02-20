@@ -948,7 +948,7 @@ const chatRoutes: FastifyPluginAsyncZod = async (fastify) => {
         : detectProviderFromModel(conversation.selectedModel);
 
       // Resolve API key using the centralized function (handles all providers)
-      const { apiKey, chatApiKeyId } = await resolveProviderApiKey({
+      const { apiKey, chatApiKeyId, baseUrl } = await resolveProviderApiKey({
         organizationId,
         userId: user.id,
         provider,
@@ -967,6 +967,7 @@ const chatRoutes: FastifyPluginAsyncZod = async (fastify) => {
         provider,
         apiKey,
         chatApiKeyId,
+        baseUrl,
         firstUserMessage,
         firstAssistantMessage,
       });
@@ -1268,6 +1269,7 @@ export interface GenerateTitleParams {
   provider: SupportedChatProvider;
   apiKey: string | undefined;
   chatApiKeyId?: string;
+  baseUrl?: string | null;
   firstUserMessage: string;
   firstAssistantMessage: string;
 }
@@ -1283,6 +1285,7 @@ export async function generateConversationTitle(
     provider,
     apiKey,
     chatApiKeyId,
+    baseUrl,
     firstUserMessage,
     firstAssistantMessage,
   } = params;
@@ -1294,6 +1297,7 @@ export async function generateConversationTitle(
     provider,
     apiKey,
     modelName,
+    baseUrl,
   });
 
   const titlePrompt = buildTitlePrompt(firstUserMessage, firstAssistantMessage);

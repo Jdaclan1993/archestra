@@ -44689,6 +44689,10 @@
                         "nullable": true,
                         "type": "string"
                       },
+                      "baseUrl": {
+                        "nullable": true,
+                        "type": "string"
+                      },
                       "isSystem": {
                         "type": "boolean"
                       },
@@ -44742,6 +44746,7 @@
                       "scope",
                       "userId",
                       "teamId",
+                      "baseUrl",
                       "isSystem",
                       "createdAt",
                       "updatedAt"
@@ -45012,6 +45017,11 @@
                   "teamId": {
                     "type": "string"
                   },
+                  "baseUrl": {
+                    "nullable": true,
+                    "type": "string",
+                    "format": "uri"
+                  },
                   "vaultSecretPath": {
                     "type": "string",
                     "minLength": 1
@@ -45087,6 +45097,10 @@
                       "nullable": true,
                       "type": "string"
                     },
+                    "baseUrl": {
+                      "nullable": true,
+                      "type": "string"
+                    },
                     "isSystem": {
                       "type": "boolean"
                     },
@@ -45108,6 +45122,7 @@
                     "scope",
                     "userId",
                     "teamId",
+                    "baseUrl",
                     "isSystem",
                     "createdAt",
                     "updatedAt"
@@ -45429,6 +45444,10 @@
                         "nullable": true,
                         "type": "string"
                       },
+                      "baseUrl": {
+                        "nullable": true,
+                        "type": "string"
+                      },
                       "isSystem": {
                         "type": "boolean"
                       },
@@ -45482,6 +45501,7 @@
                       "scope",
                       "userId",
                       "teamId",
+                      "baseUrl",
                       "isSystem",
                       "createdAt",
                       "updatedAt"
@@ -45781,6 +45801,10 @@
                       "nullable": true,
                       "type": "string"
                     },
+                    "baseUrl": {
+                      "nullable": true,
+                      "type": "string"
+                    },
                     "isSystem": {
                       "type": "boolean"
                     },
@@ -45834,6 +45858,7 @@
                     "scope",
                     "userId",
                     "teamId",
+                    "baseUrl",
                     "isSystem",
                     "createdAt",
                     "updatedAt"
@@ -46089,6 +46114,11 @@
                     "format": "uuid",
                     "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                   },
+                  "baseUrl": {
+                    "nullable": true,
+                    "type": "string",
+                    "format": "uri"
+                  },
                   "vaultSecretPath": {
                     "type": "string",
                     "minLength": 1
@@ -46171,6 +46201,10 @@
                       "nullable": true,
                       "type": "string"
                     },
+                    "baseUrl": {
+                      "nullable": true,
+                      "type": "string"
+                    },
                     "isSystem": {
                       "type": "boolean"
                     },
@@ -46192,6 +46226,7 @@
                     "scope",
                     "userId",
                     "teamId",
+                    "baseUrl",
                     "isSystem",
                     "createdAt",
                     "updatedAt"

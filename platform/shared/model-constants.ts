@@ -37,6 +37,28 @@ export type SupportedProviderDiscriminator = z.infer<
   typeof SupportedProvidersDiscriminatorSchema
 >;
 
+/**
+ * Default base URLs for each provider.
+ * Used as placeholder text in the UI and as fallback when no per-key base URL is configured.
+ * `null` means the provider has no standard public endpoint (self-hosted only).
+ */
+export const DEFAULT_PROVIDER_BASE_URLS: Record<
+  SupportedProvider,
+  string | null
+> = {
+  openai: "https://api.openai.com/v1",
+  anthropic: "https://api.anthropic.com",
+  gemini: "https://generativelanguage.googleapis.com",
+  cohere: "https://api.cohere.ai",
+  cerebras: "https://api.cerebras.ai/v1",
+  mistral: "https://api.mistral.ai/v1",
+  perplexity: "https://api.perplexity.ai",
+  vllm: null,
+  ollama: "http://localhost:11434/v1",
+  zhipuai: "https://open.bigmodel.cn/api/paas/v4",
+  bedrock: null,
+};
+
 export const providerDisplayNames: Record<SupportedProvider, string> = {
   openai: "OpenAI",
   anthropic: "Anthropic",

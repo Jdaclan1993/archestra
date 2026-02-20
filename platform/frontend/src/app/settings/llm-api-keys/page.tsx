@@ -89,6 +89,7 @@ const DEFAULT_FORM_VALUES: ChatApiKeyFormValues = {
   apiKey: null,
   scope: "personal",
   teamId: null,
+  baseUrl: null,
   vaultSecretPath: null,
   vaultSecretKey: null,
 };
@@ -134,6 +135,7 @@ function ChatSettingsContent() {
         apiKey: PLACEHOLDER_KEY,
         scope: selectedApiKey.scope,
         teamId: selectedApiKey.teamId ?? "",
+        baseUrl: selectedApiKey.baseUrl ?? null,
         // Include vault secret info for BYOS mode
         vaultSecretPath: selectedApiKey.vaultSecretPath ?? null,
         vaultSecretKey: selectedApiKey.vaultSecretKey ?? null,
@@ -151,6 +153,7 @@ function ChatSettingsContent() {
         scope: values.scope,
         teamId:
           values.scope === "team" && values.teamId ? values.teamId : undefined,
+        baseUrl: values.baseUrl || null,
         vaultSecretPath:
           byosEnabled && values.vaultSecretPath
             ? values.vaultSecretPath
@@ -179,6 +182,10 @@ function ChatSettingsContent() {
     const teamIdChanged = values.teamId !== (selectedApiKey.teamId ?? "");
 
     try {
+      // Detect baseUrl changes
+      const baseUrlChanged =
+        (values.baseUrl || null) !== (selectedApiKey.baseUrl ?? null);
+
       await updateMutation.mutateAsync({
         id: selectedApiKey.id,
         data: {
@@ -191,6 +198,7 @@ function ChatSettingsContent() {
                 ? values.teamId
                 : null
               : undefined,
+          baseUrl: baseUrlChanged ? values.baseUrl || null : undefined,
           vaultSecretPath:
             byosEnabled && values.vaultSecretPath
               ? values.vaultSecretPath
@@ -325,6 +333,15 @@ function ChatSettingsContent() {
               {formatSecretStorageType(row.original.secretStorageType)}
             </span>
           ),
+      },
+      {
+        accessorKey: "baseUrl",
+        header: "Base URL",
+        cell: ({ row }) => (
+          <span className="text-sm text-muted-foreground max-w-[200px] truncate block">
+            {row.original.baseUrl ?? "Default"}
+          </span>
+        ),
       },
       {
         accessorKey: "secretId",

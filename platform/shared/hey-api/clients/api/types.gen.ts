@@ -12890,6 +12890,7 @@ export type GetChatApiKeysResponses = {
         scope: 'personal' | 'team' | 'org_wide';
         userId: string | null;
         teamId: string | null;
+        baseUrl: string | null;
         isSystem: boolean;
         createdAt: string;
         updatedAt: string;
@@ -12912,6 +12913,7 @@ export type CreateChatApiKeyData = {
         apiKey?: string;
         scope?: 'personal' | 'team' | 'org_wide';
         teamId?: string;
+        baseUrl?: string | null;
         vaultSecretPath?: string;
         vaultSecretKey?: string;
     };
@@ -12992,6 +12994,7 @@ export type CreateChatApiKeyResponses = {
         scope: 'personal' | 'team' | 'org_wide';
         userId: string | null;
         teamId: string | null;
+        baseUrl: string | null;
         isSystem: boolean;
         createdAt: string;
         updatedAt: string;
@@ -13082,6 +13085,7 @@ export type GetAvailableChatApiKeysResponses = {
         scope: 'personal' | 'team' | 'org_wide';
         userId: string | null;
         teamId: string | null;
+        baseUrl: string | null;
         isSystem: boolean;
         createdAt: string;
         updatedAt: string;
@@ -13257,6 +13261,7 @@ export type GetChatApiKeyResponses = {
         scope: 'personal' | 'team' | 'org_wide';
         userId: string | null;
         teamId: string | null;
+        baseUrl: string | null;
         isSystem: boolean;
         createdAt: string;
         updatedAt: string;
@@ -13278,6 +13283,7 @@ export type UpdateChatApiKeyData = {
         apiKey?: string;
         scope?: 'personal' | 'team' | 'org_wide';
         teamId?: string | null;
+        baseUrl?: string | null;
         vaultSecretPath?: string;
         vaultSecretKey?: string;
     };
@@ -13360,6 +13366,7 @@ export type UpdateChatApiKeyResponses = {
         scope: 'personal' | 'team' | 'org_wide';
         userId: string | null;
         teamId: string | null;
+        baseUrl: string | null;
         isSystem: boolean;
         createdAt: string;
         updatedAt: string;

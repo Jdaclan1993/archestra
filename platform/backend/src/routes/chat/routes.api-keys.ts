@@ -135,6 +135,7 @@ const chatApiKeysRoutes: FastifyPluginAsyncZod = async (fastify) => {
             apiKey: z.string().min(1).optional(),
             scope: ChatApiKeyScopeSchema.default("personal"),
             teamId: z.string().optional(),
+            baseUrl: z.string().url().nullable().optional(),
             vaultSecretPath: z.string().min(1).optional(),
             vaultSecretKey: z.string().min(1).optional(),
           })
@@ -242,6 +243,7 @@ const chatApiKeysRoutes: FastifyPluginAsyncZod = async (fastify) => {
         scope: body.scope,
         userId: body.scope === "personal" ? user.id : null,
         teamId: body.scope === "team" ? body.teamId : null,
+        baseUrl: body.baseUrl ?? null,
       });
 
       // Sync models for the new API key in background (non-blocking)
@@ -331,6 +333,7 @@ const chatApiKeysRoutes: FastifyPluginAsyncZod = async (fastify) => {
             apiKey: z.string().min(1).optional(),
             scope: ChatApiKeyScopeSchema.optional(),
             teamId: z.string().uuid().nullable().optional(),
+            baseUrl: z.string().url().nullable().optional(),
             vaultSecretPath: z.string().min(1).optional(),
             vaultSecretKey: z.string().min(1).optional(),
           })
@@ -457,6 +460,7 @@ const chatApiKeysRoutes: FastifyPluginAsyncZod = async (fastify) => {
         userId: string | null;
         teamId: string | null;
         secretId: string | null;
+        baseUrl: string | null;
       }> = {};
 
       if (body.name) {
@@ -465,6 +469,10 @@ const chatApiKeysRoutes: FastifyPluginAsyncZod = async (fastify) => {
 
       if (newSecretId) {
         updateData.secretId = newSecretId;
+      }
+
+      if (body.baseUrl !== undefined) {
+        updateData.baseUrl = body.baseUrl;
       }
 
       if (body.scope !== undefined) {

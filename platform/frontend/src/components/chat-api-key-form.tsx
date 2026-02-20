@@ -1,6 +1,10 @@
 "use client";
 
-import { type archestraApiTypes, E2eTestId } from "@shared";
+import {
+  type archestraApiTypes,
+  DEFAULT_PROVIDER_BASE_URLS,
+  E2eTestId,
+} from "@shared";
 import { Building2, CheckCircle2, User, Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -40,6 +44,7 @@ export type ChatApiKeyFormValues = {
   apiKey: string | null;
   scope: NonNullable<CreateChatApiKeyBody["scope"]>;
   teamId: string | null;
+  baseUrl: string | null;
   vaultSecretPath: string | null;
   vaultSecretKey: string | null;
 };
@@ -486,6 +491,27 @@ export function ChatApiKeyForm({
             </Select>
           </div>
         )}
+
+        {/* Base URL override */}
+        <div className="space-y-2">
+          <Label htmlFor="chat-api-key-base-url">
+            Base URL{" "}
+            <span className="text-muted-foreground font-normal">
+              (optional)
+            </span>
+          </Label>
+          <Input
+            id="chat-api-key-base-url"
+            type="url"
+            placeholder={DEFAULT_PROVIDER_BASE_URLS[provider] ?? "https://..."}
+            disabled={isPending}
+            {...form.register("baseUrl")}
+          />
+          <p className="text-xs text-muted-foreground">
+            Override the default API endpoint. Useful for self-hosted instances
+            or OpenAI-compatible providers.
+          </p>
+        </div>
 
         {/* API Key input */}
         {byosEnabled ? (

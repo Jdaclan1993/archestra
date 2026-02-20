@@ -183,6 +183,11 @@ export async function handleLLMProxy<
   // Extract API key
   const apiKey = provider.extractApiKey(headers);
 
+  // Extract per-key base URL override (set by chat backend when API key has custom base URL)
+  const perKeyBaseUrl = (headers as Record<string, unknown>)[
+    "x-archestra-provider-base-url"
+  ] as string | undefined;
+
   // Check usage limits
   try {
     logger.debug(
@@ -410,8 +415,10 @@ export async function handleLLMProxy<
     }
 
     // Create client with observability (each provider handles metrics internally)
+    // Per-key base URL override takes precedence over provider default
+    const effectiveBaseUrl = perKeyBaseUrl ?? provider.getBaseUrl();
     const client = provider.createClient(apiKey, {
-      baseUrl: provider.getBaseUrl(),
+      baseUrl: effectiveBaseUrl,
       mockMode: config.benchmark.mockMode,
       agent: resolvedAgent,
       externalAgentId,
@@ -459,6 +466,7 @@ export async function handleLLMProxy<
         executionId,
         parentContext,
         resolvedUser,
+        effectiveBaseUrl,
       );
     } else {
       return handleNonStreaming(
@@ -483,6 +491,7 @@ export async function handleLLMProxy<
         executionId,
         parentContext,
         resolvedUser,
+        effectiveBaseUrl,
       );
     }
   } catch (error) {
@@ -529,6 +538,7 @@ async function handleStreaming<
   executionId?: string,
   parentContext?: Context,
   resolvedUser?: { id: string; email: string; name: string } | null,
+  effectiveBaseUrl?: string,
 ): Promise<FastifyReply> {
   const providerName = provider.provider;
   const streamStartTime = Date.now();
@@ -552,7 +562,7 @@ async function handleStreaming<
       sessionId,
       executionId,
       externalAgentId,
-      serverAddress: provider.getBaseUrl(),
+      serverAddress: effectiveBaseUrl,
       promptMessages: provider
         .createRequestAdapter(originalRequest)
         .getProviderMessages(),
@@ -851,6 +861,7 @@ async function handleNonStreaming<
   executionId?: string,
   parentContext?: Context,
   resolvedUser?: { id: string; email: string; name: string } | null,
+  effectiveBaseUrl?: string,
 ): Promise<FastifyReply> {
   const providerName = provider.provider;
 
@@ -869,7 +880,7 @@ async function handleNonStreaming<
     sessionId,
     executionId,
     externalAgentId,
-    serverAddress: provider.getBaseUrl(),
+    serverAddress: effectiveBaseUrl,
     promptMessages: provider
       .createRequestAdapter(originalRequest)
       .getProviderMessages(),

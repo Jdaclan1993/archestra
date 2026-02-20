@@ -160,6 +160,13 @@ export const USER_ID_HEADER = "X-Archestra-User-Id";
 export const SESSION_ID_HEADER = "X-Archestra-Session-Id";
 
 /**
+ * Internal header to pass per-key provider base URL override through the LLM Proxy.
+ * Set by the chat backend when the resolved API key has a custom base URL.
+ * The proxy handler reads this to override the default provider base URL.
+ */
+export const PROVIDER_BASE_URL_HEADER = "X-Archestra-Provider-Base-Url";
+
+/**
  * Header name for execution ID.
  * Clients can pass this header to associate interactions with a specific execution run.
  */
