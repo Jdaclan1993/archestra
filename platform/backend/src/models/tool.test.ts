@@ -913,6 +913,138 @@ describe("ToolModel", () => {
       expect(result1[0].name).toBe("conflict-tool");
       expect(result2[0].name).toBe("conflict-tool");
     });
+
+    test("upgrades proxy-discovered tools by setting catalogId (same tool IDs, no duplicates)", async ({
+      makeInternalMcpCatalog,
+      makeTool,
+      makeAgent,
+      makeAgentTool,
+    }) => {
+      const catalog = await makeInternalMcpCatalog();
+      const agent = await makeAgent();
+
+      // Create proxy-discovered tools (catalogId=NULL)
+      const proxyTool1 = await makeTool({
+        name: "proxy-upgrade-1",
+        description: "Proxy tool 1",
+      });
+      const proxyTool2 = await makeTool({
+        name: "proxy-upgrade-2",
+        description: "Proxy tool 2",
+      });
+
+      // Assign proxy tools to agent (simulating proxy discovery)
+      await makeAgentTool(agent.id, proxyTool1.id);
+      await makeAgentTool(agent.id, proxyTool2.id);
+
+      // Now bulk-create the same tools as MCP tools (simulating MCP server install)
+      const result = await ToolModel.bulkCreateToolsIfNotExists([
+        {
+          name: "proxy-upgrade-1",
+          description: "MCP tool 1",
+          parameters: {},
+          catalogId: catalog.id,
+        },
+        {
+          name: "proxy-upgrade-2",
+          description: "MCP tool 2",
+          parameters: {},
+          catalogId: catalog.id,
+        },
+      ]);
+
+      // Should return the same tool IDs (upgraded, not duplicated)
+      expect(result).toHaveLength(2);
+      expect(result.find((t) => t.name === "proxy-upgrade-1")?.id).toBe(
+        proxyTool1.id,
+      );
+      expect(result.find((t) => t.name === "proxy-upgrade-2")?.id).toBe(
+        proxyTool2.id,
+      );
+
+      // Tools should now have the catalogId set
+      for (const tool of result) {
+        expect(tool.catalogId).toBe(catalog.id);
+      }
+
+      // Agent-tool links should still be intact
+      const agentToolIds = await AgentToolModel.findToolIdsByAgent(agent.id);
+      expect(agentToolIds).toContain(proxyTool1.id);
+      expect(agentToolIds).toContain(proxyTool2.id);
+    });
+
+    test("handles mix of proxy tools and genuinely new tools", async ({
+      makeInternalMcpCatalog,
+      makeTool,
+    }) => {
+      const catalog = await makeInternalMcpCatalog();
+
+      // Create one proxy-discovered tool
+      const proxyTool = await makeTool({
+        name: "mixed-proxy-tool",
+        description: "Proxy tool",
+      });
+
+      // Bulk-create with one proxy tool and one genuinely new tool
+      const result = await ToolModel.bulkCreateToolsIfNotExists([
+        {
+          name: "mixed-proxy-tool",
+          description: "MCP tool (was proxy)",
+          parameters: {},
+          catalogId: catalog.id,
+        },
+        {
+          name: "mixed-new-tool",
+          description: "Brand new MCP tool",
+          parameters: {},
+          catalogId: catalog.id,
+        },
+      ]);
+
+      expect(result).toHaveLength(2);
+
+      // Proxy tool should be upgraded (same ID)
+      const upgradedTool = result.find((t) => t.name === "mixed-proxy-tool");
+      expect(upgradedTool?.id).toBe(proxyTool.id);
+      expect(upgradedTool?.catalogId).toBe(catalog.id);
+
+      // New tool should be created
+      const newTool = result.find((t) => t.name === "mixed-new-tool");
+      expect(newTool).toBeDefined();
+      expect(newTool?.catalogId).toBe(catalog.id);
+    });
+
+    test("does not touch tools that already have a different catalogId", async ({
+      makeInternalMcpCatalog,
+      makeTool,
+    }) => {
+      const catalog1 = await makeInternalMcpCatalog({ name: "Catalog 1" });
+      const catalog2 = await makeInternalMcpCatalog({ name: "Catalog 2" });
+
+      // Create a tool that already belongs to catalog1
+      const existingTool = await makeTool({
+        name: "already-owned-tool",
+        description: "Owned by catalog1",
+        catalogId: catalog1.id,
+      });
+
+      // Try to bulk-create same-named tool for catalog2
+      const result = await ToolModel.bulkCreateToolsIfNotExists([
+        {
+          name: "already-owned-tool",
+          description: "Should not steal from catalog1",
+          parameters: {},
+          catalogId: catalog2.id,
+        },
+      ]);
+
+      // Should create a new tool for catalog2 (not upgrade catalog1's tool)
+      // The proxy upgrade only targets catalogId=NULL tools
+      expect(result).toHaveLength(1);
+      // The original tool should still belong to catalog1
+      const originalTool = await ToolModel.findById(existingTool.id);
+      expect(originalTool?.catalogId).toBe(catalog1.id);
+    });
   });
 
   describe("createToolIfNotExists - proxy to MCP upgrade", () => {

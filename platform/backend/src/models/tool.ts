@@ -434,6 +434,20 @@ class ToolModel {
     const catalogId = tools[0].catalogId;
     const toolNames = tools.map((t) => t.name);
 
+    // Upgrade proxy-discovered tools (catalogId=NULL) to this catalog.
+    // Preserves existing tool IDs, agent_tools links, and policies.
+    await db
+      .update(schema.toolsTable)
+      .set({ catalogId })
+      .where(
+        and(
+          isNull(schema.toolsTable.catalogId),
+          isNull(schema.toolsTable.agentId),
+          isNull(schema.toolsTable.delegateToAgentId),
+          inArray(schema.toolsTable.name, toolNames),
+        ),
+      );
+
     // Fetch all existing tools for this catalog in a single query
     const existingTools = await db
       .select()
@@ -915,6 +929,23 @@ class ToolModel {
     }
 
     const catalogId = tools[0].catalogId;
+    const toolNames = tools.map((t) => t.name);
+
+    // Upgrade proxy-discovered tools (catalogId=NULL) to this catalog.
+    // Defensive: proxy tools could be created between install and reinstall.
+    if (toolNames.length > 0) {
+      await db
+        .update(schema.toolsTable)
+        .set({ catalogId })
+        .where(
+          and(
+            isNull(schema.toolsTable.catalogId),
+            isNull(schema.toolsTable.agentId),
+            isNull(schema.toolsTable.delegateToAgentId),
+            inArray(schema.toolsTable.name, toolNames),
+          ),
+        );
+    }
 
     // Fetch ALL existing tools for this catalog (regardless of name)
     // This allows us to match by raw tool name even when catalog name changed
