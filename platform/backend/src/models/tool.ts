@@ -667,10 +667,6 @@ class ToolModel {
   }
 
   /**
-   * Get names of all MCP tools assigned to an agent.
-   * Used to prevent autodiscovery of tools already available via MCP servers.
-   */
-  /**
    * Check which tool names already exist in the database (any type).
    * Used to avoid creating proxy duplicates of tools that already exist.
    */
@@ -1233,6 +1229,7 @@ class ToolModel {
       description?: string | null;
       parameters?: Record<string, unknown>;
     }>,
+    /** @deprecated No longer used. Proxy tools are shared (agentId=NULL). Kept for call-site compatibility. */
     _agentId: string,
   ): Promise<Tool[]> {
     if (tools.length === 0) {

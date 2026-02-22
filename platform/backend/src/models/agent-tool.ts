@@ -7,7 +7,6 @@ import {
   getTableColumns,
   inArray,
   isNotNull,
-  isNull,
   or,
   type SQL,
   sql,
@@ -516,45 +515,6 @@ class AgentToolModel {
         .onConflictDoNothing();
     }
 
-    // Update existing assignments that have null credentials (from proxy discovery)
-    // Only update NULL fields to avoid overwriting deliberate configurations
-    if (options && existingAssignments.length > 0) {
-      const updateData: Partial<
-        Pick<
-          InsertAgentTool,
-          "credentialSourceMcpServerId" | "executionSourceMcpServerId"
-        >
-      > = {};
-      const nullConditions: SQL[] = [];
-
-      if (options.credentialSourceMcpServerId) {
-        updateData.credentialSourceMcpServerId =
-          options.credentialSourceMcpServerId;
-        nullConditions.push(
-          isNull(schema.agentToolsTable.credentialSourceMcpServerId),
-        );
-      }
-      if (options.executionSourceMcpServerId) {
-        updateData.executionSourceMcpServerId =
-          options.executionSourceMcpServerId;
-        nullConditions.push(
-          isNull(schema.agentToolsTable.executionSourceMcpServerId),
-        );
-      }
-
-      if (nullConditions.length > 0) {
-        await db
-          .update(schema.agentToolsTable)
-          .set(updateData)
-          .where(
-            and(
-              inArray(schema.agentToolsTable.agentId, agentIds),
-              inArray(schema.agentToolsTable.toolId, toolIds),
-              or(...nullConditions),
-            ),
-          );
-      }
-    }
   }
 
   /**
