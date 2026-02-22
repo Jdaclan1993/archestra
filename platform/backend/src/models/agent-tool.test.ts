@@ -1026,6 +1026,5 @@ describe("AgentToolModel.findAll", () => {
       // Only Archestra tools should be present
       expect(agent1Tools.length).toBeGreaterThan(0);
     });
-
   });
 });

@@ -26,37 +26,17 @@ WHERE id IN (
 );
 --> statement-breakpoint
 
--- Step 2: For proxy tools that share a name with a catalog tool,
--- ensure the proxy tool's agent has an agent_tools entry for the catalog tool.
--- This preserves agent-to-tool assignments before proxy tools are deleted.
-INSERT INTO agent_tools (id, agent_id, tool_id, created_at, updated_at)
-SELECT gen_random_uuid(), sub.agent_id, sub.catalog_tool_id, NOW(), NOW()
-FROM (
-  SELECT DISTINCT t.agent_id, catalog_t.id AS catalog_tool_id
-  FROM tools t
-  JOIN tools catalog_t ON catalog_t.name = t.name AND catalog_t.catalog_id IS NOT NULL
-  WHERE t.agent_id IS NOT NULL
-    AND t.catalog_id IS NULL
-    AND t.delegate_to_agent_id IS NULL
-) sub
-WHERE NOT EXISTS (
-  SELECT 1 FROM agent_tools at
-  WHERE at.agent_id = sub.agent_id AND at.tool_id = sub.catalog_tool_id
-);
---> statement-breakpoint
-
--- Step 3: Delete all agent_tools entries for proxy tools.
+-- Step 2: Delete all agent_tools entries for proxy tools.
 -- Going forward, proxy tools are not linked to agents via agent_tools.
 DELETE FROM agent_tools
 WHERE tool_id IN (
   SELECT id FROM tools
-  WHERE agent_id IS NOT NULL
-    AND catalog_id IS NULL
+  WHERE catalog_id IS NULL
     AND delegate_to_agent_id IS NULL
 );
 --> statement-breakpoint
 
--- Step 4: Deduplicate proxy tools (keep oldest per name) and remove those with catalog equivalents.
+-- Step 3: Deduplicate proxy tools (keep oldest per name) and remove those with catalog equivalents.
 DELETE FROM tools
 WHERE agent_id IS NOT NULL
   AND catalog_id IS NULL
@@ -73,7 +53,7 @@ WHERE agent_id IS NOT NULL
   );
 --> statement-breakpoint
 
--- Step 5: Make remaining proxy tools shared (agent_id = NULL).
+-- Step 4: Make remaining proxy tools shared (agent_id = NULL).
 UPDATE tools
 SET agent_id = NULL
 WHERE agent_id IS NOT NULL

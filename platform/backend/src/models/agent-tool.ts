@@ -505,7 +505,6 @@ class AgentToolModel {
         .values(newAssignments)
         .onConflictDoNothing();
     }
-
   }
 
   /**

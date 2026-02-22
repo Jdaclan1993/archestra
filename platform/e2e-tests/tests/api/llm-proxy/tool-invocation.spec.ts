@@ -567,7 +567,7 @@ for (const config of testConfigs) {
       createToolInvocationPolicy,
       deleteToolInvocationPolicy,
       makeApiRequest,
-      waitForAgentTool,
+      waitForProxyTool,
     }) => {
       const wiremockStub = `${config.providerName.toLowerCase()}-blocks-tool-untrusted-data`;
       const uniqueSuffix = crypto.randomUUID().slice(0, 8);
@@ -613,13 +613,9 @@ for (const config of testConfigs) {
         );
       }
 
-      // 3. Get the tool ID from the agent-tool relationship
-      const readFileAgentTool = await waitForAgentTool(
-        request,
-        agentId,
-        toolName,
-      );
-      const toolId = readFileAgentTool.tool.id;
+      // 3. Get the tool ID from the shared proxy tool
+      const proxyTool = await waitForProxyTool(request, toolName);
+      const toolId = proxyTool.id;
 
       // 4. Create a trusted data policy
       const trustedDataPolicyResponse = await createTrustedDataPolicy(request, {
