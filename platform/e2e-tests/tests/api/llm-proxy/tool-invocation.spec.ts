@@ -589,6 +589,7 @@ for (const config of testConfigs) {
           name: `${config.providerName} Test Agent ${uniqueSuffix}`,
           teams: [],
           considerContextUntrusted: true,
+          agentType: "llm_proxy",
         },
       });
       const agent = await createResponse.json();
@@ -701,15 +702,15 @@ for (const config of testConfigs) {
 
     test("allows Archestra MCP server tools in untrusted context", async ({
       request,
-      createAgent,
+      createLlmProxy,
       deleteAgent,
       makeApiRequest,
     }) => {
       const wiremockStub = `${config.providerName.toLowerCase()}-allows-archestra-untrusted-context`;
 
-      // 1. Create a test agent with unique name to avoid conflicts in parallel runs
+      // 1. Create a test LLM proxy with unique name to avoid conflicts in parallel runs
       const uniqueSuffix = crypto.randomUUID().slice(0, 8);
-      const createResponse = await createAgent(
+      const createResponse = await createLlmProxy(
         request,
         `${config.providerName} Archestra Test Agent ${uniqueSuffix}`,
       );
@@ -767,15 +768,15 @@ for (const config of testConfigs) {
 
     test("allows regular tool call after Archestra MCP server tool call", async ({
       request,
-      createAgent,
+      createLlmProxy,
       deleteAgent,
       makeApiRequest,
     }) => {
       const wiremockStub = `${config.providerName.toLowerCase()}-allows-regular-after-archestra`;
 
-      // 1. Create a test agent with unique name to avoid conflicts in parallel runs
+      // 1. Create a test LLM proxy with unique name to avoid conflicts in parallel runs
       const uniqueSuffix = crypto.randomUUID().slice(0, 8);
-      const createResponse = await createAgent(
+      const createResponse = await createLlmProxy(
         request,
         `${config.providerName} Archestra Sequence Test Agent ${uniqueSuffix}`,
       );

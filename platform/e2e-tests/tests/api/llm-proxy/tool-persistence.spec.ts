@@ -301,17 +301,17 @@ for (const config of testConfigs) {
 
     test("persists tools from LLM proxy request", async ({
       request,
-      createAgent,
+      createLlmProxy,
       makeApiRequest,
-      waitForAgentTool,
+      waitForProxyTool,
     }) => {
       const provider = config.providerName.toLowerCase();
       const wiremockStub = `${provider}-tool-persistence`;
       const toolOneName = `e2e_persist_tool_1_${provider}`;
       const toolTwoName = `e2e_persist_tool_2_${provider}`;
 
-      // 1. Create test profile with unique name
-      const createResponse = await createAgent(
+      // 1. Create test LLM proxy (tool persistence only applies to llm_proxy agents)
+      const createResponse = await createLlmProxy(
         request,
         `Tool Persistence Test - ${config.providerName}`,
       );
@@ -339,23 +339,23 @@ for (const config of testConfigs) {
       });
       expect(response.ok()).toBeTruthy();
 
-      // 3. Verify tools are persisted using waitForAgentTool
-      const toolOne = await waitForAgentTool(request, agentId, toolOneName);
+      // 3. Verify tools are persisted using waitForProxyTool
+      const toolOne = await waitForProxyTool(request, toolOneName);
       expect(toolOne).toBeDefined();
-      expect(toolOne.agent.id).toBe(agentId);
-      expect(toolOne.tool.name).toBe(toolOneName);
+      expect(toolOne.name).toBe(toolOneName);
+      expect(toolOne.catalogId).toBeNull();
 
-      const toolTwo = await waitForAgentTool(request, agentId, toolTwoName);
+      const toolTwo = await waitForProxyTool(request, toolTwoName);
       expect(toolTwo).toBeDefined();
-      expect(toolTwo.agent.id).toBe(agentId);
-      expect(toolTwo.tool.name).toBe(toolTwoName);
+      expect(toolTwo.name).toBe(toolTwoName);
+      expect(toolTwo.catalogId).toBeNull();
     });
 
     test("does not create duplicate tools when same request is sent twice", async ({
       request,
-      createAgent,
+      createLlmProxy,
       makeApiRequest,
-      waitForAgentTool,
+      waitForProxyTool,
     }) => {
       const provider = config.providerName.toLowerCase();
       const wiremockStub = `${provider}-tool-persistence-idempotency`;
@@ -366,8 +366,8 @@ for (const config of testConfigs) {
         parameters: { type: "object", properties: { input: { type: "string", description: "Input" } }, required: ["input"] },
       };
 
-      // 1. Create test profile
-      const createResponse = await createAgent(
+      // 1. Create test LLM proxy (tool persistence only applies to llm_proxy agents)
+      const createResponse = await createLlmProxy(
         request,
         `Tool Persistence Idempotency Test - ${config.providerName}`,
       );
@@ -384,7 +384,7 @@ for (const config of testConfigs) {
       });
 
       // 3. Wait for tool to be persisted
-      await waitForAgentTool(request, agentId, toolName);
+      await waitForProxyTool(request, toolName);
 
       // 4. Send second request with same tool
       await makeApiRequest({
@@ -398,17 +398,17 @@ for (const config of testConfigs) {
       // 5. Small delay for any async processing
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      // 6. Query all agent-tools and verify no duplicates
-      const agentToolsResponse = await makeApiRequest({
+      // 6. Query tools and verify no duplicates
+      const toolsResponse = await makeApiRequest({
         request,
         method: "get",
-        urlSuffix: `/api/agent-tools?agentId=${agentId}&limit=100`,
+        urlSuffix: `/api/tools/with-assignments?search=${encodeURIComponent(toolName)}&origin=llm-proxy`,
       });
-      const agentTools = await agentToolsResponse.json();
+      const tools = await toolsResponse.json();
 
-      // Filter to only our test tool
-      const matchingTools = agentTools.data.filter(
-        (at: { tool: { name: string } }) => at.tool.name === toolName,
+      // Filter to exact name match
+      const matchingTools = tools.data.filter(
+        (t: { name: string }) => t.name === toolName,
       );
 
       // Should have exactly 1 instance, not 2
