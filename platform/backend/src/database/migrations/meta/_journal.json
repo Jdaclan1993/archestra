@@ -1037,13 +1037,6 @@
       "when": 1771510215318,
       "tag": "0147_split_agent_rbac_resources",
       "breakpoints": true
-    },
-    {
-      "idx": 148,
-      "version": "7",
-      "when": 1771501414963,
-      "tag": "0148_shared_proxy_tools",
-      "breakpoints": true
     }
   ]
 }
