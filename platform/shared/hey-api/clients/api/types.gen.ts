@@ -12888,7 +12888,9 @@ export type GetChatApiKeysResponses = {
         scope: 'personal' | 'team' | 'org_wide';
         userId: string | null;
         teamId: string | null;
+        baseUrl: string | null;
         isSystem: boolean;
+        isPrimary: boolean;
         createdAt: string;
         updatedAt: string;
         teamName?: string | null;
@@ -12908,8 +12910,10 @@ export type CreateChatApiKeyData = {
         name: string;
         provider: 'anthropic' | 'bedrock' | 'cerebras' | 'cohere' | 'gemini' | 'mistral' | 'openai' | 'perplexity' | 'vllm' | 'ollama' | 'zhipuai';
         apiKey?: string;
+        baseUrl?: string | null;
         scope?: 'personal' | 'team' | 'org_wide';
         teamId?: string;
+        isPrimary?: boolean;
         vaultSecretPath?: string;
         vaultSecretKey?: string;
     };
@@ -12990,7 +12994,9 @@ export type CreateChatApiKeyResponses = {
         scope: 'personal' | 'team' | 'org_wide';
         userId: string | null;
         teamId: string | null;
+        baseUrl: string | null;
         isSystem: boolean;
+        isPrimary: boolean;
         createdAt: string;
         updatedAt: string;
     };
@@ -13080,7 +13086,9 @@ export type GetAvailableChatApiKeysResponses = {
         scope: 'personal' | 'team' | 'org_wide';
         userId: string | null;
         teamId: string | null;
+        baseUrl: string | null;
         isSystem: boolean;
+        isPrimary: boolean;
         createdAt: string;
         updatedAt: string;
         teamName?: string | null;
@@ -13255,7 +13263,9 @@ export type GetChatApiKeyResponses = {
         scope: 'personal' | 'team' | 'org_wide';
         userId: string | null;
         teamId: string | null;
+        baseUrl: string | null;
         isSystem: boolean;
+        isPrimary: boolean;
         createdAt: string;
         updatedAt: string;
         teamName?: string | null;
@@ -13274,8 +13284,10 @@ export type UpdateChatApiKeyData = {
     body?: {
         name?: string;
         apiKey?: string;
+        baseUrl?: string | null;
         scope?: 'personal' | 'team' | 'org_wide';
         teamId?: string | null;
+        isPrimary?: boolean;
         vaultSecretPath?: string;
         vaultSecretKey?: string;
     };
@@ -13358,7 +13370,9 @@ export type UpdateChatApiKeyResponses = {
         scope: 'personal' | 'team' | 'org_wide';
         userId: string | null;
         teamId: string | null;
+        baseUrl: string | null;
         isSystem: boolean;
+        isPrimary: boolean;
         createdAt: string;
         updatedAt: string;
     };
@@ -15769,6 +15783,50 @@ export type CohereChatWithAgentResponses = {
 
 export type CohereChatWithAgentResponse = CohereChatWithAgentResponses[keyof CohereChatWithAgentResponses];
 
+export type GetConfigData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/config';
+};
+
+export type GetConfigResponses = {
+    /**
+     * Default Response
+     */
+    200: {
+        features: {
+            'orchestrator-k8s-runtime': boolean;
+            byosEnabled: boolean;
+            byosVaultKvVersion: '1' | '2';
+            geminiVertexAiEnabled: boolean;
+            globalToolPolicy: 'permissive' | 'restrictive';
+            browserStreamingEnabled: boolean;
+            incomingEmail: {
+                enabled: boolean;
+                provider?: 'outlook';
+                displayName?: string;
+                emailDomain?: string;
+            };
+            knowledgeGraph: {
+                enabled: boolean;
+                provider?: 'lightrag';
+                displayName?: string;
+            };
+            mcpServerBaseImage: string;
+            orchestratorK8sNamespace: string;
+            isQuickstart: boolean;
+            ngrokDomain: string;
+            virtualKeyDefaultExpirationSeconds: number;
+        };
+        providerBaseUrls: {
+            [key: string]: string | null;
+        };
+    };
+};
+
+export type GetConfigResponse = GetConfigResponses[keyof GetConfigResponses];
+
 export type GetDefaultDualLlmConfigData = {
     body?: never;
     path?: never;
@@ -16455,48 +16513,6 @@ export type GetDualLlmResultsByInteractionResponses = {
 };
 
 export type GetDualLlmResultsByInteractionResponse = GetDualLlmResultsByInteractionResponses[keyof GetDualLlmResultsByInteractionResponses];
-
-export type GetFeaturesData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/features';
-};
-
-export type GetFeaturesResponses = {
-    /**
-     * Default Response
-     */
-    200: {
-        'orchestrator-k8s-runtime': boolean;
-        byosEnabled: boolean;
-        byosVaultKvVersion: '1' | '2';
-        geminiVertexAiEnabled: boolean;
-        vllmEnabled: boolean;
-        ollamaEnabled: boolean;
-        mistralEnabled: boolean;
-        perplexityEnabled: boolean;
-        globalToolPolicy: 'permissive' | 'restrictive';
-        browserStreamingEnabled: boolean;
-        incomingEmail: {
-            enabled: boolean;
-            provider?: 'outlook';
-            displayName?: string;
-            emailDomain?: string;
-        };
-        knowledgeGraph: {
-            enabled: boolean;
-            provider?: 'lightrag';
-            displayName?: string;
-        };
-        mcpServerBaseImage: string;
-        orchestratorK8sNamespace: string;
-        isQuickstart: boolean;
-        ngrokDomain: string;
-    };
-};
-
-export type GetFeaturesResponse = GetFeaturesResponses[keyof GetFeaturesResponses];
 
 export type PostV1GeminiV1BetaModelsByModelGenerateContentData = {
     body?: GeminiGenerateContentRequestInput;
@@ -28400,6 +28416,362 @@ export type RotateUserTokenResponses = {
 };
 
 export type RotateUserTokenResponse = RotateUserTokenResponses[keyof RotateUserTokenResponses];
+
+export type GetAllVirtualApiKeysData = {
+    body?: never;
+    path?: never;
+    query?: {
+        limit?: number;
+        offset?: number;
+    };
+    url: '/api/virtual-api-keys';
+};
+
+export type GetAllVirtualApiKeysErrors = {
+    /**
+     * Default Response
+     */
+    400: {
+        error: {
+            message: string;
+            type: 'api_validation_error';
+        };
+    };
+    /**
+     * Default Response
+     */
+    401: {
+        error: {
+            message: string;
+            type: 'api_authentication_error';
+        };
+    };
+    /**
+     * Default Response
+     */
+    403: {
+        error: {
+            message: string;
+            type: 'api_authorization_error';
+        };
+    };
+    /**
+     * Default Response
+     */
+    404: {
+        error: {
+            message: string;
+            type: 'api_not_found_error';
+        };
+    };
+    /**
+     * Default Response
+     */
+    409: {
+        error: {
+            message: string;
+            type: 'api_conflict_error';
+        };
+    };
+    /**
+     * Default Response
+     */
+    500: {
+        error: {
+            message: string;
+            type: 'api_internal_server_error';
+        };
+    };
+};
+
+export type GetAllVirtualApiKeysError = GetAllVirtualApiKeysErrors[keyof GetAllVirtualApiKeysErrors];
+
+export type GetAllVirtualApiKeysResponses = {
+    /**
+     * Default Response
+     */
+    200: {
+        data: Array<{
+            id: string;
+            chatApiKeyId: string;
+            name: string;
+            secretId: string;
+            tokenStart: string;
+            expiresAt: string | null;
+            createdAt: string;
+            lastUsedAt: string | null;
+            parentKeyName: string;
+            parentKeyProvider: string;
+            parentKeyBaseUrl: string | null;
+        }>;
+        pagination: {
+            currentPage: number;
+            limit: number;
+            total: number;
+            totalPages: number;
+            hasNext: boolean;
+            hasPrev: boolean;
+        };
+    };
+};
+
+export type GetAllVirtualApiKeysResponse = GetAllVirtualApiKeysResponses[keyof GetAllVirtualApiKeysResponses];
+
+export type GetVirtualApiKeysData = {
+    body?: never;
+    path: {
+        chatApiKeyId: string;
+    };
+    query?: never;
+    url: '/api/chat-api-keys/{chatApiKeyId}/virtual-keys';
+};
+
+export type GetVirtualApiKeysErrors = {
+    /**
+     * Default Response
+     */
+    400: {
+        error: {
+            message: string;
+            type: 'api_validation_error';
+        };
+    };
+    /**
+     * Default Response
+     */
+    401: {
+        error: {
+            message: string;
+            type: 'api_authentication_error';
+        };
+    };
+    /**
+     * Default Response
+     */
+    403: {
+        error: {
+            message: string;
+            type: 'api_authorization_error';
+        };
+    };
+    /**
+     * Default Response
+     */
+    404: {
+        error: {
+            message: string;
+            type: 'api_not_found_error';
+        };
+    };
+    /**
+     * Default Response
+     */
+    409: {
+        error: {
+            message: string;
+            type: 'api_conflict_error';
+        };
+    };
+    /**
+     * Default Response
+     */
+    500: {
+        error: {
+            message: string;
+            type: 'api_internal_server_error';
+        };
+    };
+};
+
+export type GetVirtualApiKeysError = GetVirtualApiKeysErrors[keyof GetVirtualApiKeysErrors];
+
+export type GetVirtualApiKeysResponses = {
+    /**
+     * Default Response
+     */
+    200: Array<{
+        id: string;
+        chatApiKeyId: string;
+        name: string;
+        secretId: string;
+        tokenStart: string;
+        expiresAt: string | null;
+        createdAt: string;
+        lastUsedAt: string | null;
+    }>;
+};
+
+export type GetVirtualApiKeysResponse = GetVirtualApiKeysResponses[keyof GetVirtualApiKeysResponses];
+
+export type CreateVirtualApiKeyData = {
+    body: {
+        name: string;
+        expiresAt?: unknown;
+    };
+    path: {
+        chatApiKeyId: string;
+    };
+    query?: never;
+    url: '/api/chat-api-keys/{chatApiKeyId}/virtual-keys';
+};
+
+export type CreateVirtualApiKeyErrors = {
+    /**
+     * Default Response
+     */
+    400: {
+        error: {
+            message: string;
+            type: 'api_validation_error';
+        };
+    };
+    /**
+     * Default Response
+     */
+    401: {
+        error: {
+            message: string;
+            type: 'api_authentication_error';
+        };
+    };
+    /**
+     * Default Response
+     */
+    403: {
+        error: {
+            message: string;
+            type: 'api_authorization_error';
+        };
+    };
+    /**
+     * Default Response
+     */
+    404: {
+        error: {
+            message: string;
+            type: 'api_not_found_error';
+        };
+    };
+    /**
+     * Default Response
+     */
+    409: {
+        error: {
+            message: string;
+            type: 'api_conflict_error';
+        };
+    };
+    /**
+     * Default Response
+     */
+    500: {
+        error: {
+            message: string;
+            type: 'api_internal_server_error';
+        };
+    };
+};
+
+export type CreateVirtualApiKeyError = CreateVirtualApiKeyErrors[keyof CreateVirtualApiKeyErrors];
+
+export type CreateVirtualApiKeyResponses = {
+    /**
+     * Default Response
+     */
+    200: {
+        id: string;
+        chatApiKeyId: string;
+        name: string;
+        secretId: string;
+        tokenStart: string;
+        expiresAt: string | null;
+        createdAt: string;
+        lastUsedAt: string | null;
+        value: string;
+    };
+};
+
+export type CreateVirtualApiKeyResponse = CreateVirtualApiKeyResponses[keyof CreateVirtualApiKeyResponses];
+
+export type DeleteVirtualApiKeyData = {
+    body?: never;
+    path: {
+        chatApiKeyId: string;
+        id: string;
+    };
+    query?: never;
+    url: '/api/chat-api-keys/{chatApiKeyId}/virtual-keys/{id}';
+};
+
+export type DeleteVirtualApiKeyErrors = {
+    /**
+     * Default Response
+     */
+    400: {
+        error: {
+            message: string;
+            type: 'api_validation_error';
+        };
+    };
+    /**
+     * Default Response
+     */
+    401: {
+        error: {
+            message: string;
+            type: 'api_authentication_error';
+        };
+    };
+    /**
+     * Default Response
+     */
+    403: {
+        error: {
+            message: string;
+            type: 'api_authorization_error';
+        };
+    };
+    /**
+     * Default Response
+     */
+    404: {
+        error: {
+            message: string;
+            type: 'api_not_found_error';
+        };
+    };
+    /**
+     * Default Response
+     */
+    409: {
+        error: {
+            message: string;
+            type: 'api_conflict_error';
+        };
+    };
+    /**
+     * Default Response
+     */
+    500: {
+        error: {
+            message: string;
+            type: 'api_internal_server_error';
+        };
+    };
+};
+
+export type DeleteVirtualApiKeyError = DeleteVirtualApiKeyErrors[keyof DeleteVirtualApiKeyErrors];
+
+export type DeleteVirtualApiKeyResponses = {
+    /**
+     * Default Response
+     */
+    200: {
+        success: boolean;
+    };
+};
+
+export type DeleteVirtualApiKeyResponse = DeleteVirtualApiKeyResponses[keyof DeleteVirtualApiKeyResponses];
 
 export type VllmChatCompletionsWithDefaultAgentData = {
     body?: VllmChatCompletionRequestInput;
