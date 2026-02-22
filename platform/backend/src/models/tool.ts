@@ -96,6 +96,7 @@ class ToolModel {
     return updatedTool || null;
   }
 
+  // TODO: used only in tests and should be removed.
   static async createToolIfNotExists(tool: InsertTool): Promise<Tool> {
     // For shared tools (agentId=null, catalogId=null) — covers both proxy-sniffed and Archestra built-in tools
     // This prevents duplicates since NULL != NULL in unique constraints
@@ -296,37 +297,20 @@ class ToolModel {
     /**
      * Apply access control filtering for users that are not agent admins
      *
-     * If the user is not an admin, we allow them to see:
-     * - MCP tools (catalogId IS NOT NULL) — visible to all
-     * - Tools assigned to agents they have access to (via agent_tools junction)
+     * Non-admins can only see MCP tools (catalogId IS NOT NULL).
+     * Proxy tools (catalogId=NULL) are not surfaced in this endpoint.
      */
+    // TODO: this require a re-work.
+    // findAll currently used only by the auto-policy configuration and it bypass access control checks.
     if (userId && !isAgentAdmin) {
-      const accessibleAgentIds = await AgentTeamModel.getUserAccessibleAgentIds(
-        userId,
-        false,
-      );
-
-      if (accessibleAgentIds.length === 0) {
-        query = query.where(isNotNull(schema.toolsTable.catalogId));
-      } else {
-        const accessibleToolIds =
-          await AgentToolModel.findToolIdsByAgents(accessibleAgentIds);
-
-        query = query.where(
-          or(
-            isNotNull(schema.toolsTable.catalogId),
-            ...(accessibleToolIds.length > 0
-              ? [inArray(schema.toolsTable.id, accessibleToolIds)]
-              : []),
-          ),
-        );
-      }
+      query = query.where(isNotNull(schema.toolsTable.catalogId));
     }
 
     const results = await query;
     return ToolModel.filterUnavailableTools(results);
   }
 
+  // TODO: used only in tests and should be removed.
   static async findByName(
     name: string,
     userId?: string,
@@ -357,7 +341,7 @@ class ToolModel {
   }
 
   /**
-   * Get all tools for an agent (both proxy-sniffed and MCP tools)
+   * Get all tools for an agent.
    * All tools are linked via the agent_tools junction table.
    */
   static async getToolsByAgent(agentId: string): Promise<Tool[]> {
@@ -379,7 +363,7 @@ class ToolModel {
   /**
    * Get only MCP tools assigned to an agent (those from connected MCP servers)
    * Includes: MCP server tools (catalogId set, including Archestra builtin tools)
-   * Excludes: proxy-discovered tools (agentId set, catalogId null)
+   * Excludes: proxy-discovered tools (catalogId null)
    *
    * Note: Archestra tools are no longer automatically assigned - they must be
    * explicitly assigned like any other MCP server tools.

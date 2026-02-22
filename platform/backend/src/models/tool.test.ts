@@ -153,67 +153,35 @@ describe("ToolModel", () => {
       expect(tools.length).toBe(2);
     });
 
-    test("member only sees tools for accessible agents", async ({
-      makeUser,
-      makeAdmin,
-      makeOrganization,
-      makeTeam,
-      makeAgent,
-      makeTool,
-      makeAgentTool,
-    }) => {
-      const user1 = await makeUser();
-      const user2 = await makeUser();
-      const admin = await makeAdmin();
-      const org = await makeOrganization();
-
-      // Create teams and add users
-      const team1 = await makeTeam(org.id, admin.id, { name: "Team 1" });
-      await TeamModel.addMember(team1.id, user1.id);
-
-      const team2 = await makeTeam(org.id, admin.id, { name: "Team 2" });
-      await TeamModel.addMember(team2.id, user2.id);
-
-      // Create agents with team assignments
-      const agent1 = await makeAgent({ name: "Agent1", teams: [team1.id] });
-      const agent2 = await makeAgent({ name: "Agent2", teams: [team2.id] });
-
-      const tool1 = await makeTool({
-        name: "tool1",
-        description: "Tool 1",
-        parameters: {},
-      });
-      await makeAgentTool(agent1.id, tool1.id);
-
-      const tool2 = await makeTool({
-        name: "tool2",
-        description: "Tool 2",
-        parameters: {},
-      });
-      await makeAgentTool(agent2.id, tool2.id);
-
-      const tools = await ToolModel.findAll(user1.id, false);
-      expect(tools).toHaveLength(1);
-      expect(tools[0].id).toBe(tool1.id);
-    });
-
-    test("member with no access sees no tools", async ({
+    test("non-admin only sees MCP tools (catalogId set), not proxy tools", async ({
       makeUser,
       makeAgent,
       makeTool,
       makeAgentTool,
+      makeInternalMcpCatalog,
     }) => {
       const user = await makeUser();
-      const agent1 = await makeAgent({ name: "Agent1" });
+      const agent = await makeAgent({ name: "Agent1" });
+      const catalog = await makeInternalMcpCatalog();
 
-      const tool1 = await makeTool({
-        name: "tool1",
-        description: "Tool 1",
+      // Proxy tool (no catalogId) — should NOT be visible to non-admin
+      const proxyTool = await makeTool({
+        name: "proxy-tool",
+        description: "Proxy Tool",
       });
-      await makeAgentTool(agent1.id, tool1.id);
+      await makeAgentTool(agent.id, proxyTool.id);
+
+      // MCP tool (catalogId set) — should be visible to non-admin
+      const mcpTool = await makeTool({
+        name: "mcp-tool",
+        description: "MCP Tool",
+        catalogId: catalog.id,
+      });
+      await makeAgentTool(agent.id, mcpTool.id);
 
       const tools = await ToolModel.findAll(user.id, false);
-      expect(tools).toHaveLength(0);
+      expect(tools).toHaveLength(1);
+      expect(tools[0].id).toBe(mcpTool.id);
     });
 
     test("findById returns tool for admin", async ({

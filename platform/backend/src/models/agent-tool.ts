@@ -342,15 +342,6 @@ class AgentToolModel {
     return results.map((r) => r.toolId);
   }
 
-  static async findToolIdsByAgents(agentIds: string[]): Promise<string[]> {
-    if (agentIds.length === 0) return [];
-    const results = await db
-      .selectDistinct({ toolId: schema.agentToolsTable.toolId })
-      .from(schema.agentToolsTable)
-      .where(inArray(schema.agentToolsTable.agentId, agentIds));
-    return results.map((r) => r.toolId);
-  }
-
   static async findAgentIdsByTool(toolId: string): Promise<string[]> {
     const results = await db
       .select({ agentId: schema.agentToolsTable.agentId })
