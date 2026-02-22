@@ -797,18 +797,9 @@ class AgentToolModel {
       whereConditions.push(eq(schema.agentToolsTable.agentId, filters.agentId));
     }
 
-    // Filter by origin (either "llm-proxy" or a catalogId)
+    // Filter by origin (catalogId)
     if (filters?.origin) {
-      if (filters.origin === "llm-proxy") {
-        // LLM Proxy tools: shared proxy tools with catalogId=NULL, no delegation
-        whereConditions.push(sql`${schema.toolsTable.catalogId} IS NULL`);
-        whereConditions.push(
-          sql`${schema.toolsTable.delegateToAgentId} IS NULL`,
-        );
-      } else {
-        // MCP tools have a catalogId
-        whereConditions.push(eq(schema.toolsTable.catalogId, filters.origin));
-      }
+      whereConditions.push(eq(schema.toolsTable.catalogId, filters.origin));
     }
 
     // Filter by credential owner (check both credential source and execution source)

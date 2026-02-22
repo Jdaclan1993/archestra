@@ -1,7 +1,7 @@
 import { isAgentTool } from "@shared";
 import { getArchestraMcpTools } from "@/archestra-mcp-server";
 import logger from "@/logging";
-import { AgentToolModel, ToolModel } from "@/models";
+import { ToolModel } from "@/models";
 
 /**
  * Persist tools if present in the request
@@ -93,7 +93,7 @@ export const persistTools = async (
     { agentId, toolCount: toolsToAutoDiscover.length },
     "[tools] persistTools: bulk creating tools",
   );
-  const createdTools = await ToolModel.bulkCreateProxyToolsIfNotExists(
+  await ToolModel.bulkCreateProxyToolsIfNotExists(
     toolsToAutoDiscover.map(
       ({ toolName, toolParameters, toolDescription }) => ({
         name: toolName,
@@ -104,16 +104,8 @@ export const persistTools = async (
     agentId,
   );
 
-  // Bulk create agent-tool relationships (single query to check existing + single insert for new)
-  // Deduplicate tool IDs in case input contained duplicate tool names
-  const toolIds = [...new Set(createdTools.map((tool) => tool.id))];
   logger.debug(
-    { agentId, toolIdCount: toolIds.length },
-    "[tools] persistTools: creating agent-tool relationships",
-  );
-  await AgentToolModel.createManyIfNotExists(agentId, toolIds);
-  logger.debug(
-    { agentId, createdToolCount: toolIds.length },
+    { agentId, toolCount: toolsToAutoDiscover.length },
     "[tools] persistTools: tool persistence complete",
   );
 };
