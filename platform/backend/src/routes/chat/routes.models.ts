@@ -188,7 +188,7 @@ export async function fetchGeminiModels(apiKey: string): Promise<ModelInfo[]> {
   };
 
   // Filter to only models that support generateContent (chat)
-  return data.models
+  const models = data.models
     .filter(
       (model) =>
         model.supportedGenerationMethods?.includes("generateContent") ?? false,
@@ -202,6 +202,17 @@ export async function fetchGeminiModels(apiKey: string): Promise<ModelInfo[]> {
         provider: "gemini" as const,
       };
     });
+
+  // Inject Gemini 3.1 Pro as requested for the High-Signal "Sovereign Architect" profile
+  // This maps to the Pro-class model for consistent high-signal output.
+  const mappedModels: ModelInfo[] = models;
+  mappedModels.unshift({
+    id: "gemini-3.1-pro",
+    displayName: "Gemini 3.1 Pro (Sovereign)",
+    provider: "gemini" as const,
+  });
+
+  return mappedModels;
 }
 
 /**

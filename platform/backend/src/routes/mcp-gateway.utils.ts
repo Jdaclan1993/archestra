@@ -88,6 +88,7 @@ export async function createAgentServer(
     {
       capabilities: {
         tools: { listChanged: false },
+        apps: {},
       },
     },
   );
@@ -142,6 +143,53 @@ export async function createAgentServer(
 
     return { tools: toolsList };
   });
+
+  // Handle MCP Apps list request
+  server.setRequestHandler({ method: "apps/list" }, async () => {
+    const appsList = await mcpClient.listApps(agentId, tokenAuth);
+
+    // Persist apps/list request
+    try {
+      await McpToolCallModel.create({
+        agentId,
+        mcpServerName: "mcp-gateway",
+        method: "apps/list",
+        toolCall: null,
+        toolResult: appsList as any,
+        userId: tokenAuth?.userId ?? null,
+        authMethod: deriveAuthMethod(tokenAuth) ?? null,
+      });
+    } catch (dbError) {
+      logger.warn({ err: dbError }, "Failed to persist apps/list request");
+    }
+
+    return appsList;
+  });
+
+  // Handle MCP App get request (returns iframe URL)
+  server.setRequestHandler(
+    { method: "apps/get" },
+    async ({ params: { name } }: any) => {
+      const appResult = await mcpClient.getApp(name, agentId, tokenAuth);
+
+      // Persist apps/get request
+      try {
+        await McpToolCallModel.create({
+          agentId,
+          mcpServerName: "mcp-gateway",
+          method: "apps/get",
+          toolCall: { id: `app-get-${Date.now()}`, name, arguments: {} },
+          toolResult: appResult as any,
+          userId: tokenAuth?.userId ?? null,
+          authMethod: deriveAuthMethod(tokenAuth) ?? null,
+        });
+      } catch (dbError) {
+        logger.warn({ err: dbError }, "Failed to persist apps/get request");
+      }
+
+      return appResult;
+    },
+  );
 
   server.setRequestHandler(
     CallToolRequestSchema,

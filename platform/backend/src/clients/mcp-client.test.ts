@@ -20,6 +20,8 @@ const mockClose = vi.fn();
 const mockListTools = vi.fn();
 const mockPing = vi.fn();
 
+const mockRequest = vi.fn();
+
 vi.mock("@modelcontextprotocol/sdk/client/index.js", () => ({
   // biome-ignore lint/suspicious/noExplicitAny: test..
   Client: vi.fn(function (this: any) {
@@ -28,6 +30,7 @@ vi.mock("@modelcontextprotocol/sdk/client/index.js", () => ({
     this.close = mockClose;
     this.listTools = mockListTools;
     this.ping = mockPing;
+    this.request = mockRequest;
   }),
 }));
 
@@ -107,6 +110,7 @@ describe("McpClient", () => {
     mockClose.mockReset();
     mockListTools.mockReset();
     mockPing.mockReset();
+    mockRequest.mockReset();
     mockUsesStreamableHttp.mockReset();
     mockGetHttpEndpointUrl.mockReset();
     mockGetRunningPodHttpEndpoint.mockReset();
@@ -1828,6 +1832,80 @@ describe("McpClient", () => {
           arguments: {},
         });
       });
+    });
+  });
+
+  describe("listApps", () => {
+    let agentId: string;
+
+    beforeEach(async () => {
+      const agent = await AgentModel.create({ name: "App Test Agent", teams: [] });
+      agentId = agent.id;
+    });
+
+    test("successfully lists and namespaces apps from multiple catalogs", async () => {
+      // 1. Setup mock catalogs
+      const catalog1 = await InternalMcpCatalogModel.create({
+        name: "catalog1",
+        serverType: "remote",
+        serverUrl: "http://cat1",
+      });
+      const catalog2 = await InternalMcpCatalogModel.create({
+        name: "catalog2",
+        serverType: "remote",
+        serverUrl: "http://cat2",
+      });
+
+      // 2. Setup mock tools assigned to agent (from these catalogs)
+      const tool1 = await ToolModel.createToolIfNotExists({
+        name: "cat1__tool",
+        catalogId: catalog1.id,
+      });
+      const tool2 = await ToolModel.createToolIfNotExists({
+        name: "cat2__tool",
+        catalogId: catalog2.id,
+      });
+
+      await AgentToolModel.create(agentId, tool1.id);
+      await AgentToolModel.create(agentId, tool2.id);
+
+      // 3. Mock MCP client responses for apps/list
+      mockRequest
+        .mockResolvedValueOnce({ apps: [{ name: "app1", title: "App 1" }] }) // cat1
+        .mockResolvedValueOnce({ apps: [{ name: "app2", title: "App 2" }] }); // cat2
+
+      // 4. Execute listApps
+      const result = await mcpClient.listApps(agentId);
+
+      // 5. Verify results
+      expect(result.apps).toHaveLength(2);
+      const appNames = result.apps.map(a => a.name);
+      expect(appNames).toContain("catalog1:app2");
+      expect(appNames).toContain("catalog2:app1");
+
+      // Verify that it requested apps/list
+      expect(mockRequest).toHaveBeenCalledWith({ method: "apps/list" }, expect.anything());
+    });
+
+    test("handles errors from individual MCP servers gracefully", async () => {
+      const catalog1 = await InternalMcpCatalogModel.create({
+        name: "catalog1",
+        serverType: "remote",
+        serverUrl: "http://cat1",
+      });
+      const tool = await ToolModel.createToolIfNotExists({
+        name: "cat1__tool",
+        catalogId: catalog1.id,
+      });
+      await AgentToolModel.create(agentId, tool.id);
+
+      // Mock error for cat1
+      mockRequest.mockRejectedValueOnce(new Error("Server offline"));
+
+      const result = await mcpClient.listApps(agentId);
+
+      // Should return empty list but not crash
+      expect(result.apps).toHaveLength(0);
     });
   });
 });

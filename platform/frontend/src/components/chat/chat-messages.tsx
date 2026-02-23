@@ -43,6 +43,7 @@ import { extractFileAttachments, hasTextPart } from "./chat-messages.utils";
 import { EditableAssistantMessage } from "./editable-assistant-message";
 import { EditableUserMessage } from "./editable-user-message";
 import { InlineChatError } from "./inline-chat-error";
+import { McpAppView } from "./mcp-app-view";
 import { PolicyDeniedTool } from "./policy-denied-tool";
 import { TodoWriteTool } from "./todo-write-tool";
 import { ToolErrorLogsButton } from "./tool-error-logs-button";
@@ -557,10 +558,10 @@ export function ChatMessages({
                                 const isLastParsedTextPart =
                                   parsedIdx ===
                                   parsedParts.length -
-                                    1 -
-                                    [...parsedParts]
-                                      .reverse()
-                                      .findIndex((p) => p.type === "text");
+                                  1 -
+                                  [...parsedParts]
+                                    .reverse()
+                                    .findIndex((p) => p.type === "text");
                                 return (
                                   <EditableAssistantMessage
                                     key={parsedKey}
@@ -765,6 +766,20 @@ export function ChatMessages({
                       );
                     }
 
+                    case "app": {
+                      const appPart = part as any;
+                      return (
+                        <div key={`${message.id}-${i}`} className="w-full py-2">
+                          <McpAppView
+                            name={appPart.name}
+                            url={appPart.url}
+                            title={appPart.title}
+                            agentId={agentId}
+                          />
+                        </div>
+                      );
+                    }
+
                     case "dynamic-tool": {
                       if (!isToolPart(part)) return null;
                       const toolName = part.toolName;
@@ -837,18 +852,18 @@ export function ChatMessages({
           {error && <InlineChatError error={error} />}
           {(status === "submitted" ||
             (status === "streaming" && isStreamingStalled)) && (
-            <div className="absolute bottom-[-10] left-0">
-              <Message from="assistant">
-                <Image
-                  src={"/logo.png"}
-                  alt="Loading logo"
-                  width={30}
-                  height={30}
-                  className="object-contain h-6 w-auto animate-[bounce_700ms_ease_200ms_infinite]"
-                />
-              </Message>
-            </div>
-          )}
+              <div className="absolute bottom-[-10] left-0">
+                <Message from="assistant">
+                  <Image
+                    src={"/logo.png"}
+                    alt="Loading logo"
+                    width={30}
+                    height={30}
+                    className="object-contain h-6 w-auto animate-[bounce_700ms_ease_200ms_infinite]"
+                  />
+                </Message>
+              </div>
+            )}
         </div>
       </ConversationContent>
       <ConversationScrollButton />
@@ -960,10 +975,10 @@ function MessageTool({
   const hasInput = part.input && Object.keys(part.input).length > 0;
   const hasContent = Boolean(
     hasInput ||
-      errorText ||
-      isApprovalRequested ||
-      (toolResultPart && Boolean(toolResultPart.output)) ||
-      (!toolResultPart && Boolean(part.output)),
+    errorText ||
+    isApprovalRequested ||
+    (toolResultPart && Boolean(toolResultPart.output)) ||
+    (!toolResultPart && Boolean(part.output)),
   );
 
   // Show logs button for failed tool calls
